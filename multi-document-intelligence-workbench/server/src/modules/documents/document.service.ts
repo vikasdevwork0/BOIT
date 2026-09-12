@@ -143,7 +143,7 @@ export class DocumentService {
     const filePath = path.join(uploadsDir, doc.storedName);
     await fs.unlink(filePath).catch(() => {});
 
-    await prisma.finding.deleteMany({ where: { sourceDocId: id } });
+    await prisma.finding.deleteMany({ where: { sourceDocumentId: id } });
     await prisma.analysisDocument.deleteMany({ where: { documentId: id } });
     return prisma.document.delete({ where: { id } });
   }
