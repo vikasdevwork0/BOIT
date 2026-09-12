@@ -2,6 +2,10 @@
 node_modules/
 npm-debug.log*
 
+# Uploads directory
+uploads/
+server/uploads/
+
 # Production builds
 dist/
 build/
