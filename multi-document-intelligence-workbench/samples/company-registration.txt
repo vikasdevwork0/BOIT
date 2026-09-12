@@ -1,0 +1,13 @@
+=== SYNTHETIC / DEMO DATA - MINISTRY OF CORPORATE AFFAIRS REGISTRATION ===
+Document Type: Certificate of Incorporation & Director Register (Synthetic Demo)
+Company Name: Acme Financial Services Ltd
+CIN: CIN-U65990MH2018PLC312450
+Date of Incorporation: 14/05/2018
+Registered Office Address: 52 MG Road, Nariman Point, Mumbai 400021
+
+=== AUTHORIZED DIRECTORS ON MCA RECORD ===
+1. Vikram Sharma (Director - DIN 08912450)
+2. Rajesh Gupta (Director - DIN 07641209)
+
+Note: No other active directors registered on MCA master data as of 2026.
+Notice: SYNTHETIC DEMO DATA ONLY.

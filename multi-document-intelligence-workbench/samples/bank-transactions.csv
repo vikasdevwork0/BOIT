@@ -1,0 +1,10 @@
+Transaction_ID,Date,Description,Debit_INR,Credit_INR,Balance_INR
+TXN-9001,2025-01-05,Client Payment Recd - Customer A,0,750000,1850000
+TXN-9002,2025-01-12,Vendor Payout - IT Services,250000,0,1600000
+TXN-9003,2025-01-20,Office Rent & Maintenance,150000,0,1450000
+TXN-9004,2025-02-02,Client Payment Recd - Customer B,0,680000,2130000
+TXN-9005,2025-02-15,Payroll Account Transfer,850000,0,1280000
+TXN-9006,2025-02-28,Loan Interest Payment,180000,0,1100000
+TXN-9007,2025-03-10,Client Payment Recd - Customer C,0,920000,2020000
+TXN-9008,2025-03-25,Operational Expenses,420000,0,1600000
+SUMMARY_NOTE,2025-03-31,Total Annual Credit Turnover: INR 8.2 Crore (82000000 INR) | Avg Monthly Balance: INR 15 Lakhs,0,82000000,1600000
