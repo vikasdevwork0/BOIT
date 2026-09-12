@@ -6,6 +6,8 @@ export interface UploadedDocumentResult {
   mimeType: string;
   status: string;
   fileSize: number;
+  metadata?: Record<string, any>;
+  warnings?: string[];
 }
 
 export interface UploadErrorResult {

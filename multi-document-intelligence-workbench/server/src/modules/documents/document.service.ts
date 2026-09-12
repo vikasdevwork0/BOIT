@@ -2,7 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import fs from 'fs/promises';
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES } from '../../config/upload.config.js';
-import { extractDocumentText } from '../processing/document.processor.js';
+import { ProcessorRegistry } from '../processing/processor.registry.js';
+import { ProcessedDocument } from '../processing/processor.interface.js';
 import { UploadedDocumentResult, UploadErrorResult, UploadApiResponse } from './document.types.js';
 
 const prisma = new PrismaClient();
@@ -13,7 +14,6 @@ export class DocumentService {
     const errors: UploadErrorResult[] = [];
 
     for (const file of files) {
-      // Prevent path traversal by extracting clean basename
       const originalName = path.basename(file.originalname);
       const mimeType = file.mimetype;
       const ext = path.extname(originalName).toLowerCase();
@@ -42,42 +42,69 @@ export class DocumentService {
           continue;
         }
 
-        // Extract Text
-        let extractedText = '';
-        let status = 'uploaded';
-        try {
-          extractedText = await extractDocumentText(file.path, mimeType, originalName);
-          status = 'processed';
-        } catch (err: any) {
-          console.warn(`Extraction warning for ${originalName}:`, err?.message);
-          status = 'extraction_failed';
-        }
-
-        // Save record to DB
-        const docRecord = await prisma.document.create({
+        // 1. Initial DB status: uploaded
+        let docRecord = await prisma.document.create({
           data: {
             originalName,
             storedName: file.filename,
             mimeType,
             fileSize: file.size,
-            status,
-            extractedText,
+            status: 'uploaded',
           },
         });
 
-        documents.push({
-          id: docRecord.id,
-          originalName: docRecord.originalName,
-          mimeType: docRecord.mimeType,
-          status: docRecord.status,
-          fileSize: docRecord.fileSize,
+        // 2. Transition status: processing
+        docRecord = await prisma.document.update({
+          where: { id: docRecord.id },
+          data: { status: 'processing' },
         });
+
+        // 3. Process with ProcessorRegistry
+        try {
+          const processedDoc: ProcessedDocument = await ProcessorRegistry.processDocument(
+            file.path,
+            mimeType,
+            originalName
+          );
+
+          // 4a. Transition status: processed
+          docRecord = await prisma.document.update({
+            where: { id: docRecord.id },
+            data: {
+              status: 'processed',
+              extractedText: processedDoc.text,
+            },
+          });
+
+          documents.push({
+            id: docRecord.id,
+            originalName: docRecord.originalName,
+            mimeType: docRecord.mimeType,
+            status: docRecord.status,
+            fileSize: docRecord.fileSize,
+            metadata: processedDoc.metadata,
+            warnings: processedDoc.warnings,
+          });
+        } catch (procErr: any) {
+          // 4b. Transition status: failed
+          docRecord = await prisma.document.update({
+            where: { id: docRecord.id },
+            data: {
+              status: 'failed',
+              extractedText: null,
+            },
+          });
+
+          errors.push({
+            originalName,
+            message: procErr.message || 'Processing failed for document.',
+          });
+        }
       } catch (err: any) {
-        // Clean up file if error occurs
         await fs.unlink(file.path).catch(() => {});
         errors.push({
           originalName,
-          message: err.message || 'Failed to process file',
+          message: err.message || 'Failed to initialize file upload',
         });
       }
     }
@@ -95,6 +122,7 @@ export class DocumentService {
         mimeType: true,
         fileSize: true,
         status: true,
+        extractedText: true,
         createdAt: true,
         updatedAt: true,
       },
