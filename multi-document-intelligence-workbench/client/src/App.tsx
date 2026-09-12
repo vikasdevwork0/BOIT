@@ -1,122 +1,203 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { FileUpload } from './components/FileUpload.js';
+import { DocumentList } from './components/DocumentList.js';
+import type { StagedFile } from './components/DocumentList.js';
+import { AnalysisPrompt } from './components/AnalysisPrompt.js';
+import { AnalysisResults } from './components/AnalysisResults.js';
+import {
+  uploadDocumentsApi,
+  createAnalysisApi,
+  getDocumentsApi,
+} from './services/api.js';
+import type { AnalysisResponse } from './types/api.types.js';
 
-function App() {
-  const [count, setCount] = useState(0)
+export const App: React.FC = () => {
+  const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
+  const [prompt, setPrompt] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loadingStepText, setLoadingStepText] = useState<string>('');
+  const [errorAlert, setErrorAlert] = useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
+
+  useEffect(() => {
+    loadExistingDocuments();
+  }, []);
+
+  const loadExistingDocuments = async () => {
+    try {
+      const docs = await getDocumentsApi();
+      if (docs && docs.length > 0) {
+        const existingStaged: StagedFile[] = docs.map((doc) => ({
+          id: doc.id,
+          name: doc.originalName,
+          size: doc.fileSize,
+          type: doc.mimeType,
+          serverDocId: doc.id,
+          status: doc.status,
+        }));
+        setStagedFiles(existingStaged);
+      }
+    } catch {
+      // Ignore initial load error if backend server is coming up
+    }
+  };
+
+  const handleFilesSelected = (newFiles: File[]) => {
+    setErrorAlert(null);
+    const addedStaged: StagedFile[] = newFiles.map((file) => ({
+      id: `local-${Math.random().toString(36).slice(2, 9)}`,
+      file,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      status: 'pending',
+    }));
+    setStagedFiles((prev) => [...prev, ...addedStaged]);
+  };
+
+  const handleRemoveFile = (id: string) => {
+    setStagedFiles((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const handleRunAnalysis = async () => {
+    setErrorAlert(null);
+
+    // Validation 1: No documents selected
+    if (stagedFiles.length === 0) {
+      setErrorAlert('No documents selected. Please upload at least 1 PDF, TXT, or CSV document before analyzing.');
+      return;
+    }
+
+    const effectivePrompt =
+      prompt.trim() ||
+      'Compare the uploaded documents and identify inconsistencies in names, addresses, financial values, dates, obligations, and missing information.';
+
+    setIsLoading(true);
+    setAnalysisResult(null);
+
+    try {
+      // Step A: Upload any unuploaded local files to server
+      const unuploaded = stagedFiles.filter((sf) => !sf.serverDocId && sf.file);
+      let readyServerDocIds: string[] = stagedFiles
+        .filter((sf) => sf.serverDocId)
+        .map((sf) => sf.serverDocId!);
+
+      if (unuploaded.length > 0) {
+        setLoadingStepText('Uploading documents to secure server...');
+        const rawFiles = unuploaded.map((sf) => sf.file!);
+        const uploadRes = await uploadDocumentsApi(rawFiles);
+
+        if (uploadRes.errors && uploadRes.errors.length > 0) {
+          const firstErr = uploadRes.errors[0];
+          throw new Error(`Upload error for '${firstErr.originalName}': ${firstErr.message}`);
+        }
+
+        const newDocIds = uploadRes.documents.map((d) => d.id);
+        readyServerDocIds = [...readyServerDocIds, ...newDocIds];
+
+        setStagedFiles((prev) =>
+          prev.map((sf) => {
+            const uploadedMatch = uploadRes.documents.find((ud) => ud.originalName === sf.name);
+            if (uploadedMatch) {
+              return {
+                ...sf,
+                serverDocId: uploadedMatch.id,
+                status: uploadedMatch.status,
+              };
+            }
+            return sf;
+          })
+        );
+      }
+
+      if (readyServerDocIds.length === 0) {
+        throw new Error('No valid uploaded document IDs available for analysis.');
+      }
+
+      // Step B: Trigger AI Multi-Document Analysis
+      setLoadingStepText('Running AI multi-document intelligence analysis...');
+      const analysisRes = await createAnalysisApi(readyServerDocIds, effectivePrompt);
+
+      setAnalysisResult(analysisRes);
+    } catch (err: any) {
+      setErrorAlert(err.message || 'An error occurred during multi-document analysis.');
+    } finally {
+      setIsLoading(false);
+      setLoadingStepText('');
+    }
+  };
+
+  const canAnalyze = stagedFiles.length > 0;
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="header-brand">
+          <div className="brand-logo">🏛️</div>
+          <div>
+            <h1 className="header-title">Multi-Document Intelligence Workbench</h1>
+            <p className="header-subtitle">
+              Banking & Commercial Intelligence • Discrepancy & Covenant Analysis Pipeline
+            </p>
+          </div>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
+        <div className="header-actions">
+          <span className="badge-banking">BANKING DOMAIN MVP</span>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
+      <main className="main-content">
+        {errorAlert && (
+          <div className="alert alert-danger" role="alert">
+            <span className="alert-icon">⚠️</span>
+            <div className="alert-body">
+              <strong>Error:</strong> {errorAlert}
+            </div>
+            <button
+              type="button"
+              className="alert-close"
+              onClick={() => setErrorAlert(null)}
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <section className="workbench-grid">
+          <div className="card upload-card">
+            <h2 className="card-title">1. Upload Documents</h2>
+            <FileUpload
+              onFilesSelected={handleFilesSelected}
+              onError={(msg) => setErrorAlert(msg)}
+            />
+            <DocumentList files={stagedFiles} onRemoveFile={handleRemoveFile} />
+          </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
+          <div className="card prompt-card">
+            <h2 className="card-title">2. Analysis Instructions</h2>
+            <AnalysisPrompt
+              prompt={prompt}
+              onChangePrompt={setPrompt}
+              onRunAnalysis={handleRunAnalysis}
+              isLoading={isLoading}
+              canAnalyze={canAnalyze}
+              loadingStepText={loadingStepText}
+            />
+          </div>
+        </section>
 
-export default App
+        {analysisResult && (
+          <section className="results-section">
+            <AnalysisResults analysis={analysisResult} />
+          </section>
+        )}
+      </main>
+
+      <footer className="app-footer">
+        Multi-Document Intelligence Workbench • Powered by React, Express, Prisma & OpenAI
+      </footer>
+    </div>
+  );
+};
+
+export default App;
