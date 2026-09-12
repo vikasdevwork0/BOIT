@@ -57,6 +57,9 @@ Instead of dumping all uploaded files into an AI model at once (which causes AI 
 3. **Fact vs. AI Deduction Distinction**:
    - 📌 **Extracted Fact**: Verbatim data directly read from the file.
    - 🤖 **AI Interpretation**: AI deductions, ratio checks, or cross-document comparisons.
+4. **Credit Risk Index & Underwriting Meter**: Computes a real-time risk score out of 100 based on covenant breaches and discrepancy severities.
+5. **Interactive Side-by-Side Evidence Inspector**: Clicking any finding row opens an evidence inspector modal showing grounded document snippets side-by-side.
+6. **Executive Underwriting Report Download**: One-click download of a formatted credit report (`Credit_Underwriting_Report.md`).
 
 ---
 

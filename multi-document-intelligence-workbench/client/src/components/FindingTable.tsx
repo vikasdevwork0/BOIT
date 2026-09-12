@@ -3,9 +3,10 @@ import type { FindingItem } from '../types/api.types.js';
 
 interface FindingTableProps {
   findings: FindingItem[];
+  onSelectFinding?: (finding: any) => void;
 }
 
-export const FindingTable: React.FC<FindingTableProps> = ({ findings }) => {
+export const FindingTable: React.FC<FindingTableProps> = ({ findings, onSelectFinding }) => {
   if (!findings || findings.length === 0) {
     return (
       <div className="no-findings">
@@ -57,8 +58,23 @@ export const FindingTable: React.FC<FindingTableProps> = ({ findings }) => {
                 ]
               : [];
 
+            const handleRowClick = () => {
+              if (onSelectFinding) {
+                onSelectFinding({
+                  ...finding,
+                  sourceDocument: { originalName: sources[0]?.documentName || finding.sourceDocumentName },
+                  pageReference: sources[0]?.reference || finding.sourceReference,
+                });
+              }
+            };
+
             return (
-              <tr key={finding.id || idx} className={`row-type-${finding.type.toLowerCase()}`}>
+              <tr 
+                key={finding.id || idx} 
+                className={`row-type-${finding.type.toLowerCase()} ${onSelectFinding ? 'clickable-row' : ''}`}
+                onClick={handleRowClick}
+                style={{ cursor: onSelectFinding ? 'pointer' : 'default' }}
+              >
                 <td className="cell-type">
                   <span className={`type-badge ${getTypeBadgeClass(finding.type)}`}>
                     {finding.type.toUpperCase()}
@@ -81,7 +97,7 @@ export const FindingTable: React.FC<FindingTableProps> = ({ findings }) => {
                     <div className="sources-list">
                       {sources.map((src, sIdx) => (
                         <div key={sIdx} className="source-item">
-                          <span className="source-doc">📄 {src.documentName}</span>
+                          <span className="source-doc interactive-source-link">📄 {src.documentName}</span>
                           <span className="source-ref">({src.reference})</span>
                         </div>
                       ))}

@@ -60,6 +60,15 @@ Provenance-Aware Structured Results (Facts vs AI Interpretations)
 
 ---
 
+## 🌟 Enterprise Highlights & Unique Features
+
+1. **Credit Risk Index & Underwriting Meter**: Computes a real-time commercial credit risk score (e.g., `42/100 HIGH RISK`) based on financial covenant breaches and discrepancy severities.
+2. **Interactive Side-by-Side Evidence Inspector**: Clicking any finding opens an interactive modal displaying side-by-side grounded document snippets with exact line/page references.
+3. **Category Filter Chips**: Dynamic filtering of findings by category (`All Findings`, `Discrepancies Only`, `Missing Info`, `Extracted Facts`).
+4. **Download Executive Credit Report**: One-click export of a formal formatted Markdown credit underwriting report (`Credit_Underwriting_Report.md`) for credit committee presentation.
+
+---
+
 ## Setup Instructions
 
 ### 1. Prerequisites
