@@ -10,6 +10,34 @@ interface AnalysisResultsProps {
 export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ analysis }) => {
   const [copied, setCopied] = useState(false);
   const [exportFormat, setExportFormat] = useState<'pdf' | 'csv' | 'md'>('pdf');
+  const [activeFilter, setActiveFilter] = useState<string>('ALL');
+  const [selectedFinding, setSelectedFinding] = useState<any | null>(null);
+
+  const findingsList: FindingItem[] =
+    analysis.result?.findings || analysis.findings || [];
+
+  // Calculate Banking Credit Risk Score
+  const highCount = findingsList.filter(
+    (f) => f.severity.toUpperCase() === 'HIGH' || f.severity.toUpperCase() === 'CRITICAL'
+  ).length;
+  const mediumCount = findingsList.filter(
+    (f) => f.severity.toUpperCase() === 'MEDIUM'
+  ).length;
+
+  const riskScore = Math.max(0, 100 - highCount * 25 - mediumCount * 10);
+  const riskLabel =
+    riskScore < 60 ? 'HIGH RISK' : riskScore < 85 ? 'MEDIUM RISK' : 'LOW RISK';
+  const riskBadgeClass =
+    riskScore < 60 ? 'risk-high' : riskScore < 85 ? 'risk-medium' : 'risk-low';
+
+  // Filter Findings
+  const filteredFindings = findingsList.filter((f) => {
+    if (activeFilter === 'ALL') return true;
+    if (activeFilter === 'DISCREPANCY') return f.type.toUpperCase().includes('DISCREPANCY');
+    if (activeFilter === 'MISSING') return f.type.toUpperCase().includes('MISSING');
+    if (activeFilter === 'FACT') return !f.isAiInterpretation;
+    return true;
+  });
 
   const getReportText = () => {
     return `=== MULTI-DOCUMENT INTELLIGENCE UNDERWRITING REPORT ===
