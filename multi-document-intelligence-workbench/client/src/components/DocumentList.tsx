@@ -13,9 +13,10 @@ export interface StagedFile {
 interface DocumentListProps {
   files: StagedFile[];
   onRemoveFile: (id: string) => void;
+  onClearAll?: () => void;
 }
 
-export const DocumentList: React.FC<DocumentListProps> = ({ files, onRemoveFile }) => {
+export const DocumentList: React.FC<DocumentListProps> = ({ files, onRemoveFile, onClearAll }) => {
   if (files.length === 0) {
     return null;
   }
@@ -35,8 +36,18 @@ export const DocumentList: React.FC<DocumentListProps> = ({ files, onRemoveFile 
 
   return (
     <div className="document-list-container">
-      <div className="document-list-header">
+      <div className="document-list-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span>Selected Documents ({files.length})</span>
+        {onClearAll && (
+          <button
+            type="button"
+            className="btn-remove"
+            onClick={onClearAll}
+            style={{ fontSize: '0.75rem', color: '#fca5a5', cursor: 'pointer' }}
+          >
+            🗑️ Clear All
+          </button>
+        )}
       </div>
       <div className="document-grid">
         {files.map((file) => {

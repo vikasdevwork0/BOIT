@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 describe('AI Analysis Engine & Contract Tests', () => {
   beforeEach(() => {
-    // Ensure deterministic mock engine is used for tests without live OpenAI network calls
     process.env.OPENAI_API_KEY = '';
   });
 
@@ -12,8 +14,8 @@ describe('AI Analysis Engine & Contract Tests', () => {
     // 1. Upload 2 synthetic documents to obtain IDs
     const uploadRes = await request(app)
       .post('/api/documents/upload')
-      .attach('files', Buffer.from('Account_ID,Metric,Debt_Ratio\nACC-4091,Ratio,0.48'), 'test_report.csv')
-      .attach('files', Buffer.from('Loan Covenant Agreement: Borrower ACC-4091 max Debt Ratio limit is 0.40.'), 'test_covenant.txt');
+      .attach('files', Buffer.from('Account_ID,Metric,Debt_Ratio\nACC-4091,Ratio,0.48'), 'analysis_test_report.csv')
+      .attach('files', Buffer.from('Loan Covenant Agreement: Borrower ACC-4091 max Debt Ratio limit is 0.40.'), 'analysis_test_covenant.txt');
 
     expect(uploadRes.status).toBe(200);
     expect(uploadRes.body.documents.length).toBe(2);
@@ -62,5 +64,12 @@ describe('AI Analysis Engine & Contract Tests', () => {
     expect(getRes.status).toBe(200);
     expect(getRes.body.id).toBe(analysisRes.body.id);
     expect(getRes.body.findings.length).toBeGreaterThan(0);
+
+    // Clean up test documents created during this test
+    for (const id of docIds) {
+      await prisma.finding.deleteMany({ where: { sourceDocumentId: id } });
+      await prisma.analysisDocument.deleteMany({ where: { documentId: id } });
+      await prisma.document.delete({ where: { id } }).catch(() => {});
+    }
   });
 });

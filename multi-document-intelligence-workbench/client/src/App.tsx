@@ -64,6 +64,16 @@ export const App: React.FC = () => {
     setStagedFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
+  const handleClearAll = () => {
+    stagedFiles.forEach((sf) => {
+      if (sf.serverDocId) {
+        deleteDocumentApi(sf.serverDocId).catch(() => {});
+      }
+    });
+    setStagedFiles([]);
+    setAnalysisResult(null);
+  };
+
   const handleRunAnalysis = async () => {
     setErrorAlert(null);
 
@@ -175,7 +185,11 @@ export const App: React.FC = () => {
               onFilesSelected={handleFilesSelected}
               onError={(msg) => setErrorAlert(msg)}
             />
-            <DocumentList files={stagedFiles} onRemoveFile={handleRemoveFile} />
+            <DocumentList
+              files={stagedFiles}
+              onRemoveFile={handleRemoveFile}
+              onClearAll={handleClearAll}
+            />
           </div>
 
           <div className="card prompt-card">

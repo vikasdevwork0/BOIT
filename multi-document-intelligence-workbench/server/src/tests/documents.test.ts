@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 describe('Document Upload & Processing Integration Tests', () => {
   beforeEach(() => {
@@ -10,13 +13,15 @@ describe('Document Upload & Processing Integration Tests', () => {
   it('should accept and process multiple supported documents (TXT, CSV)', async () => {
     const res = await request(app)
       .post('/api/documents/upload')
-      .attach('files', Buffer.from('Account_ID,Metric,Value\nACC-101,Revenue,500000'), 'test_financials.csv')
-      .attach('files', Buffer.from('Synthetic Audit Note: Liquidity ratio verified at 1.5.'), 'test_notes.txt');
+      .attach('files', Buffer.from('Account_ID,Metric,Value\nACC-101,Revenue,500000'), 'doc_test_financials.csv')
+      .attach('files', Buffer.from('Synthetic Audit Note: Liquidity ratio verified at 1.5.'), 'doc_test_notes.txt');
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('documents');
     expect(Array.isArray(res.body.documents)).toBe(true);
     expect(res.body.documents.length).toBe(2);
+
+    const docIds = res.body.documents.map((d: any) => d.id);
 
     res.body.documents.forEach((doc: any) => {
       expect(doc).toHaveProperty('id');
@@ -25,6 +30,13 @@ describe('Document Upload & Processing Integration Tests', () => {
       expect(doc.status).toBe('processed');
       expect(doc).toHaveProperty('originalName');
     });
+
+    // Cleanup test docs
+    for (const id of docIds) {
+      await prisma.finding.deleteMany({ where: { sourceDocumentId: id } });
+      await prisma.analysisDocument.deleteMany({ where: { documentId: id } });
+      await prisma.document.delete({ where: { id } }).catch(() => {});
+    }
   });
 
   it('should reject unsupported file types with structured error', async () => {
