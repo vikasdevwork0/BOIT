@@ -8,11 +8,53 @@ generator client {
 }
 
 model Document {
-  id        String   @id @default(uuid())
-  name      String
-  fileType  String
-  filePath  String
-  fileSize  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String             @id @default(uuid())
+  originalName  String
+  storedName    String
+  mimeType      String
+  fileSize      Int
+  status        String             @default("PENDING")
+  extractedText String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  analyses      AnalysisDocument[]
+  findings      Finding[]
+}
+
+model Analysis {
+  id        String             @id @default(uuid())
+  prompt    String
+  status    String             @default("PENDING")
+  summary   String?
+  rawResult String?
+  createdAt DateTime           @default(now())
+  documents AnalysisDocument[]
+  findings  Finding[]
+}
+
+model AnalysisDocument {
+  analysisId String
+  documentId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@id([analysisId, documentId])
+}
+
+model Finding {
+  id                 String   @id @default(uuid())
+  analysisId         String
+  type               String
+  title              String
+  description        String
+  severity           String   @default("LOW")
+  value              String?
+  sourceDocumentId   String?
+  sourceReference    String?
+  confidence         Float?
+  isAiInterpretation Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  analysis       Analysis  @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  sourceDocument Document? @relation(fields: [sourceDocumentId], references: [id], onDelete: SetNull)
 }

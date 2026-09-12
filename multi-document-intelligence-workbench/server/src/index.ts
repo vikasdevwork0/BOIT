@@ -1,10 +1,12 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
 
 dotenv.config();
 
 const app = express();
+const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5001;
 
 app.use(cors());
@@ -13,6 +15,27 @@ app.use(express.json());
 // Health endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
+});
+
+// Database connectivity check endpoint
+app.get('/api/db-health', async (_req: Request, res: Response) => {
+  try {
+    const documentCount = await prisma.document.count();
+    const analysisCount = await prisma.analysis.count();
+    const findingCount = await prisma.finding.count();
+
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      counts: {
+        documents: documentCount,
+        analyses: analysisCount,
+        findings: findingCount,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: (error as Error).message });
+  }
 });
 
 app.listen(PORT, () => {
