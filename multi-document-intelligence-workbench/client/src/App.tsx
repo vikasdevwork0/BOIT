@@ -8,6 +8,7 @@ import {
   uploadDocumentsApi,
   createAnalysisApi,
   getDocumentsApi,
+  deleteDocumentApi,
 } from './services/api.js';
 import type { AnalysisResponse } from './types/api.types.js';
 
@@ -56,6 +57,10 @@ export const App: React.FC = () => {
   };
 
   const handleRemoveFile = (id: string) => {
+    const target = stagedFiles.find((f) => f.id === id);
+    if (target && target.serverDocId) {
+      deleteDocumentApi(target.serverDocId).catch(() => {});
+    }
     setStagedFiles((prev) => prev.filter((f) => f.id !== id));
   };
 

@@ -39,4 +39,7 @@ router.get('/', DocumentController.getAllDocuments);
 // GET /api/documents/:id
 router.get('/:id', DocumentController.getDocumentById);
 
+// DELETE /api/documents/:id
+router.delete('/:id', DocumentController.deleteDocument);
+
 export default router;

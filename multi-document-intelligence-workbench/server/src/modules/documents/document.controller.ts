@@ -67,4 +67,27 @@ export class DocumentController {
       });
     }
   }
+
+  static async deleteDocument(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const deleted = await DocumentService.deleteDocument(id);
+      if (!deleted) {
+        return res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: `Document with ID '${id}' was not found for deletion.`,
+          },
+        });
+      }
+      return res.json({ success: true, id });
+    } catch (error: any) {
+      return res.status(500).json({
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to delete document.',
+        },
+      });
+    }
+  }
 }

@@ -134,4 +134,17 @@ export class DocumentService {
       where: { id },
     });
   }
+
+  static async deleteDocument(id: string) {
+    const doc = await prisma.document.findUnique({ where: { id } });
+    if (!doc) return null;
+
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const filePath = path.join(uploadsDir, doc.storedName);
+    await fs.unlink(filePath).catch(() => {});
+
+    await prisma.finding.deleteMany({ where: { sourceDocId: id } });
+    await prisma.analysisDocument.deleteMany({ where: { documentId: id } });
+    return prisma.document.delete({ where: { id } });
+  }
 }

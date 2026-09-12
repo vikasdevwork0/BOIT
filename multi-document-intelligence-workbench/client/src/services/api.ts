@@ -78,3 +78,9 @@ export async function getDocumentsApi(): Promise<DocumentItem[]> {
   }
   return response.json();
 }
+
+export async function deleteDocumentApi(id: string): Promise<void> {
+  await fetch(`${API_BASE}/documents/${id}`, {
+    method: 'DELETE',
+  });
+}
