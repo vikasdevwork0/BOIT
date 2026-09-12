@@ -8,17 +8,22 @@ export class AnalysisController {
       const parseResult = CreateAnalysisSchema.safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({
-          message: 'Invalid analysis request format',
-          errors: parseResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`),
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: parseResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; '),
+          },
         });
       }
 
       const analysis = await AnalysisService.runAnalysis(parseResult.data);
       return res.status(201).json(analysis);
     } catch (error: any) {
-      console.error('Analysis creation error:', error);
-      return res.status(500).json({
-        message: error.message || 'An error occurred during multi-document analysis.',
+      const isNotFound = error.message && error.message.includes('not found');
+      return res.status(isNotFound ? 404 : 400).json({
+        error: {
+          code: isNotFound ? 'NOT_FOUND' : 'INVALID_DOCUMENT',
+          message: error.message || 'An error occurred during multi-document analysis.',
+        },
       });
     }
   }
@@ -29,12 +34,22 @@ export class AnalysisController {
       const analysis = await AnalysisService.getAnalysisById(id);
 
       if (!analysis) {
-        return res.status(404).json({ message: `Analysis with ID '${id}' not found.` });
+        return res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: `Analysis record with ID '${id}' was not found.`,
+          },
+        });
       }
 
       return res.json(analysis);
     } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+      return res.status(500).json({
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to retrieve analysis record.',
+        },
+      });
     }
   }
 
@@ -43,7 +58,12 @@ export class AnalysisController {
       const analyses = await AnalysisService.listAnalyses();
       return res.json(analyses);
     } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+      return res.status(500).json({
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to list analysis records.',
+        },
+      });
     }
   }
 }

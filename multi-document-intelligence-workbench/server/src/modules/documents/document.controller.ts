@@ -8,6 +8,10 @@ export class DocumentController {
 
       if (!files || files.length === 0) {
         return res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'No files provided in upload request.',
+          },
           documents: [],
           errors: [{ originalName: 'N/A', message: 'No files provided in request.' }],
         });
@@ -17,8 +21,12 @@ export class DocumentController {
       return res.status(200).json(result);
     } catch (error: any) {
       return res.status(500).json({
+        error: {
+          code: 'INVALID_DOCUMENT',
+          message: error.message || 'Internal server error during document upload.',
+        },
         documents: [],
-        errors: [{ originalName: 'N/A', message: error.message || 'Internal server error during upload' }],
+        errors: [{ originalName: 'N/A', message: error.message || 'Upload failed' }],
       });
     }
   }
@@ -28,7 +36,12 @@ export class DocumentController {
       const documents = await DocumentService.listAllDocuments();
       return res.json(documents);
     } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+      return res.status(500).json({
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to list documents.',
+        },
+      });
     }
   }
 
@@ -37,11 +50,21 @@ export class DocumentController {
       const { id } = req.params;
       const document = await DocumentService.getDocumentById(id);
       if (!document) {
-        return res.status(404).json({ message: 'Document not found' });
+        return res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: `Document with ID '${id}' was not found.`,
+          },
+        });
       }
       return res.json(document);
     } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+      return res.status(500).json({
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to retrieve document details.',
+        },
+      });
     }
   }
 }
