@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import documentRoutes from './modules/documents/document.routes.js';
+import analysisRoutes from './modules/analysis/analysis.routes.js';
 
 dotenv.config();
 
@@ -39,8 +40,9 @@ app.get('/api/db-health', async (_req: Request, res: Response) => {
   }
 });
 
-// Mount document routes
+// Mount module routes
 app.use('/api/documents', documentRoutes);
+app.use('/api/analysis', analysisRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
