@@ -8,6 +8,8 @@
     "dev:client": "npm run dev --prefix client",
     "build:server": "npm run build --prefix server",
     "build:client": "npm run build --prefix client",
-    "build": "npm run build:server && npm run build:client"
+    "build": "npm run build:server && npm run build:client",
+    "test": "npm run test --prefix server",
+    "test:server": "npm run test --prefix server"
   }
 }
